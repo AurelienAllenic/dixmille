@@ -1,11 +1,79 @@
-import React from 'react'
+import React, { useState } from 'react';
+import { GameProvider, useGameContext } from '../context/GameContext';
+
+const GameSetup = () => {
+  const { state, dispatch, ACTIONS } = useGameContext();
+  const [playerName, setPlayerName] = useState('');
+
+  const addPlayer = () => {
+    if (playerName.trim() && state.players.length < 15) {
+      dispatch({
+        type: ACTIONS.ADD_PLAYER,
+        payload: { id: Date.now(), name: playerName, score: 0, bars: 0, entered: false },
+      });
+      setPlayerName('');
+    }
+  };
+
+  const removePlayer = (id) => {
+    dispatch({ type: ACTIONS.REMOVE_PLAYER, payload: id });
+  };
+
+  const startGame = () => {
+    if (state.players.length > 0) {
+      dispatch({ type: ACTIONS.START_GAME });
+    } else {
+      alert("Ajoutez au moins un joueur avant de commencer !");
+    }
+  };
+
+  return (
+    <div>
+      <h2>Paramétrer la partie</h2>
+      
+      {/* Ajout de joueurs */}
+      <div>
+        <input
+          type="text"
+          value={playerName}
+          placeholder="Nom du joueur"
+          onChange={(e) => setPlayerName(e.target.value)}
+        />
+        <button onClick={addPlayer} disabled={state.players.length >= 15}>
+          Ajouter un joueur
+        </button>
+      </div>
+
+      {/* Liste des joueurs */}
+      <ul>
+        {state.players.map((player) => (
+          <li key={player.id}>
+            {player.name} 
+            <button onClick={() => removePlayer(player.id)}>Supprimer</button>
+          </li>
+        ))}
+      </ul>
+
+      <p>Nombre de joueurs : {state.players.length}</p>
+      <p>Maximum autorisé : 15 joueurs</p>
+
+      {/* Bouton pour démarrer la partie */}
+      <button onClick={startGame} disabled={state.gameStarted}>
+        {state.gameStarted ? "Partie en cours..." : "Démarrer la partie"}
+      </button>
+    </div>
+  );
+};
 
 const Home = () => {
   return (
-    <div>
-      
-    </div>
-  )
-}
+    <GameProvider>
+      <div className="App">
+        <h1>Jeu du 10 000</h1>
+        <GameSetup />
+      </div>
+    </GameProvider>
+  );
+};
 
-export default Home
+export default Home;
