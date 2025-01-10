@@ -1,9 +1,12 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { GameProvider, useGameContext } from '../context/GameContext';
+
 
 const GameSetup = () => {
   const { state, dispatch, ACTIONS } = useGameContext();
   const [playerName, setPlayerName] = useState('');
+  const navigate = useNavigate();
 
   const addPlayer = () => {
     if (playerName.trim() && state.players.length < 15) {
@@ -21,6 +24,7 @@ const GameSetup = () => {
 
   const startGame = () => {
     if (state.players.length > 0) {
+      navigate('/game', { state: { numberOfPlayers: state.players.length, nameOfPlayers: state.players.map(player => player.name) } });
       dispatch({ type: ACTIONS.START_GAME });
     } else {
       alert("Ajoutez au moins un joueur avant de commencer !");
