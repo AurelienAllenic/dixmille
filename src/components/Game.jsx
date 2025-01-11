@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useLocation } from 'react-router-dom';
 
 const Game = () => {
@@ -6,17 +6,16 @@ const Game = () => {
   const { numberOfPlayers, nameOfPlayers } = location.state || { numberOfPlayers: 0, nameOfPlayers: [] };
 
   const [currentPlayerIndex, setCurrentPlayerIndex] = useState(null);
-  const [diceResults, setDiceResults] = useState([]); // Résultats des lancers de chaque joueur
-  const [isChoosingStarter, setIsChoosingStarter] = useState(true); // Phase de détermination du premier joueur
-  const [currentTurnIndex, setCurrentTurnIndex] = useState(0); // Suivi du joueur pendant la phase de lancer unique
-  const [startMessage, setStartMessage] = useState(''); // Message du joueur qui commence
+  const [diceResults, setDiceResults] = useState([]);
+  const [isChoosingStarter, setIsChoosingStarter] = useState(true);
+  const [currentTurnIndex, setCurrentTurnIndex] = useState(0);
+  const [startMessage, setStartMessage] = useState('');
 
-  const [dice, setDice] = useState([]); // Résultats des dés pour le tour actuel
-  const [points, setPoints] = useState(0); // Points du tour actuel
+  const [dice, setDice] = useState([]);
+  const [points, setPoints] = useState(0);
 
-  // Fonction pour lancer un dé pour un joueur pendant la phase de choix du starter
   const rollStarterDice = () => {
-    const roll = Math.floor(Math.random() * 6) + 1; // Résultat du lancer (1 à 6)
+    const roll = Math.floor(Math.random() * 6) + 1;
     setDiceResults((prevResults) => {
       const newResults = [...prevResults];
       newResults[currentTurnIndex] = roll;
@@ -24,50 +23,104 @@ const Game = () => {
     });
 
     if (currentTurnIndex + 1 >= numberOfPlayers) {
-      // Dernier joueur a lancé, attendre pour montrer son résultat
       setTimeout(() => {
         determineStarter();
-      }, 2000); // 2 secondes pour afficher le dernier résultat
+      }, 2000);
     } else {
-      // Passer au joueur suivant
       setCurrentTurnIndex((prevIndex) => prevIndex + 1);
     }
   };
 
-  // Déterminer le joueur qui commence après tous les lancers
   const determineStarter = () => {
     const maxRoll = Math.max(...diceResults);
     const starterIndex = diceResults.indexOf(maxRoll);
     setCurrentPlayerIndex(starterIndex);
     setIsChoosingStarter(false);
 
-    // Afficher le message pour le joueur qui commence
     setStartMessage(`${nameOfPlayers[starterIndex]} commence !`);
     setTimeout(() => {
-      setStartMessage(''); // Supprimer le message après 3 secondes
+      setStartMessage('');
     }, 3000);
   };
 
-  // Fonction pour lancer les dés dans le jeu principal
   const rollDice = () => {
-    const newDice = Array(6).fill(0).map(() => Math.floor(Math.random() * 6) + 1);
+    const newDice = Array(6)
+      .fill(0)
+      .map(() => Math.floor(Math.random() * 6) + 1);
     setDice(newDice);
 
-    // Calcul des points pour les 1 et les 5
-    const totalPoints = newDice.reduce((total, die) => {
-      if (die === 1) return total + 100; // 1 vaut 100 points
-      if (die === 5) return total + 50;  // 5 vaut 50 points
-      return total;
-    }, 0);
+    calculatePoints(newDice);
+  };
+
+  const generateSpecificCombination = (count, dieValue) => {
+    const newDice = Array(count).fill(dieValue).concat(Array(6 - count).fill(0).map(() => Math.floor(Math.random() * 6) + 1));
+    setDice(newDice);
+    calculatePoints(newDice);
+  };
+
+  const generateStraight = () => {
+    const newDice = [1, 2, 3, 4, 5, 6];
+    setDice(newDice);
+    calculatePoints(newDice);
+  };
+
+  const calculatePoints = (newDice) => {
+    // Vérifie la suite (1, 2, 3, 4, 5, 6)
+    const isStraight = [1, 2, 3, 4, 5, 6].every((value) => newDice.includes(value));
+    if (isStraight) {
+      setPoints(1000);
+      return;
+    }
+
+    const counts = newDice.reduce((acc, die) => {
+      acc[die] = (acc[die] || 0) + 1;
+      return acc;
+    }, {});
+
+    let totalPoints = 0;
+
+    Object.entries(counts).forEach(([die, count]) => {
+      const dieValue = parseInt(die, 10);
+      let basePoints = 0;
+
+      if (dieValue === 1) {
+        basePoints = 700; // Triple 1 vaut 700 points
+      } else {
+        basePoints = dieValue * 100; // Triple n vaut n * 100 points
+      }
+
+      if (count >= 6) {
+        totalPoints += basePoints * 2 * 2 * 2; // Sixtuple
+        count -= 6;
+      } else if (count >= 5) {
+        totalPoints += basePoints * 2 * 2; // Quintuple
+        count -= 5;
+      } else if (count >= 4) {
+        totalPoints += basePoints * 2; // Quadruple
+        count -= 4;
+      } else if (count >= 3) {
+        totalPoints += basePoints; // Triple
+        count -= 3;
+      }
+
+      // Points pour les 1 restants
+      if (dieValue === 1) {
+        totalPoints += count * 100;
+      }
+
+      // Points pour les 5 restants
+      if (dieValue === 5) {
+        totalPoints += count * 50;
+      }
+    });
 
     setPoints(totalPoints);
   };
 
-  // Fonction pour passer au joueur suivant
   const nextPlayer = () => {
     setCurrentPlayerIndex((prevIndex) => (prevIndex + 1) % numberOfPlayers);
-    setDice([]); // Réinitialiser les dés
-    setPoints(0); // Réinitialiser les points
+    setDice([]);
+    setPoints(0);
   };
 
   return (
@@ -95,10 +148,12 @@ const Game = () => {
           {startMessage && <p>{startMessage}</p>}
           <p>C'est au tour de {nameOfPlayers[currentPlayerIndex]}</p>
           
-          {/* Lancer les dés */}
           <button onClick={rollDice}>Lancer les dés</button>
 
-          {/* Affichage des dés et des points */}
+          <div>
+            <h3>Tester des combinaisons spécifiques :</h3>
+          </div>
+
           {dice.length > 0 && (
             <div>
               <h3>Résultat des dés :</h3>
@@ -111,7 +166,6 @@ const Game = () => {
             </div>
           )}
 
-          {/* Passer au joueur suivant */}
           <button onClick={nextPlayer}>Fin de tour</button>
         </div>
       )}
