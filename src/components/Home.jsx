@@ -9,27 +9,49 @@ const GameSetup = () => {
   const navigate = useNavigate();
 
   const addPlayer = () => {
-    if (playerName.trim() && state.players.length < 15) {
+    if (!playerName.trim()) {
+      alert("Le nom du joueur ne peut pas être vide !");
+      return;
+    }
+  
+    const isDuplicate = state.players.some(player => player.name.toLowerCase() === playerName.toLowerCase());
+    if (isDuplicate) {
+      alert("Un joueur avec ce nom existe déjà !");
+      return;
+    }
+  
+    if (state.players.length < 15) {
       dispatch({
         type: ACTIONS.ADD_PLAYER,
         payload: { id: Date.now(), name: playerName, score: 0, bars: 0, entered: false },
       });
       setPlayerName('');
+    } else {
+      alert("Vous avez atteint le maximum de 15 joueurs !");
     }
   };
+  
 
   const removePlayer = (id) => {
     dispatch({ type: ACTIONS.REMOVE_PLAYER, payload: id });
   };
 
   const startGame = () => {
-    if (state.players.length > 0) {
-      navigate('/game', { state: { numberOfPlayers: state.players.length, nameOfPlayers: state.players.map(player => player.name) } });
-      dispatch({ type: ACTIONS.START_GAME });
-    } else {
-      alert("Ajoutez au moins un joueur avant de commencer !");
+    if (state.players.length < 2) {
+      alert("Il faut au moins deux joueurs pour démarrer une partie !");
+      return;
     }
+  
+    navigate('/game', { 
+      state: { 
+        numberOfPlayers: state.players.length, 
+        nameOfPlayers: state.players.map(player => player.name) 
+      } 
+    });
+  
+    dispatch({ type: ACTIONS.START_GAME });
   };
+  
 
   return (
     <div>
